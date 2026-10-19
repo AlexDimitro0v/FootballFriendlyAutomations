@@ -1,0 +1,174 @@
+{
+  "schema_version": 2,
+  "sending_enabled": false,
+  "codex_thursday_disabled_confirmed": false,
+  "verified_whatsapp_invite": "",
+  "event_url": "",
+  "whatsapp": {
+    "ui_verified": false,
+    "public": {
+      "open": [
+        {
+          "action": "goto",
+          "value": "https://web.whatsapp.com/"
+        }
+      ],
+      "header": "#main header",
+      "header_pattern": "Genève Football Friendly[\\s\\S]*(Announcements|Only admins can send messages)",
+      "identity": {
+        "selector": "",
+        "attribute": ""
+      },
+      "editor": "#main footer [contenteditable='true'][role='textbox']",
+      "send": "#main footer button:has([data-icon='send'])",
+      "messages": "#main .message-out",
+      "message_text": "",
+      "sent": "[data-icon='msg-check'], [data-icon='msg-dblcheck']",
+      "reply_context": "#main footer [data-testid='quoted-message']",
+      "message_date": {
+        "selector": "",
+        "attribute": "datetime"
+      },
+      "history_end": "",
+      "history_more": [],
+      "history_return": [],
+      "compose_open": [],
+      "max_history_pages": 100
+    },
+    "private": {
+      "open": [
+        {
+          "action": "goto",
+          "value": "https://web.whatsapp.com/send?phone={id}"
+        }
+      ],
+      "header": "",
+      "header_pattern": "",
+      "identity": {
+        "selector": "",
+        "attribute": ""
+      },
+      "editor": "",
+      "send": "",
+      "messages": "",
+      "message_text": "",
+      "sent": "",
+      "reply_context": "",
+      "message_date": {
+        "selector": "",
+        "attribute": "datetime"
+      },
+      "history_end": "",
+      "history_more": [],
+      "history_return": [],
+      "compose_open": [],
+      "max_history_pages": 100
+    },
+    "members": {
+      "open": [],
+      "ready": "",
+      "rows": "",
+      "id": {
+        "selector": "",
+        "attribute": ""
+      },
+      "joined": {
+        "selector": "",
+        "attribute": "",
+        "pattern": "Joined\\s+(.+)",
+        "format": "%b %d, %Y",
+        "date_only": true
+      },
+      "left": "",
+      "end": "",
+      "advance": [],
+      "max_pages": 100
+    }
+  },
+  "meetup": {
+    "ui_verified": false,
+    "public": {
+      "open": [
+        {
+          "action": "goto",
+          "value": "https://www.meetup.com/geneve-football-friendly/discussions/"
+        }
+      ],
+      "header": "",
+      "header_pattern": "",
+      "identity": {
+        "selector": "",
+        "attribute": ""
+      },
+      "editor": "",
+      "send": "",
+      "messages": "",
+      "message_text": "",
+      "sent": "",
+      "reply_context": "",
+      "message_date": {
+        "selector": "",
+        "attribute": "datetime"
+      },
+      "history_end": "",
+      "history_more": [],
+      "history_return": [],
+      "compose_open": [],
+      "max_history_pages": 100
+    },
+    "private": {
+      "open": [
+        {
+          "action": "goto",
+          "value": "https://www.meetup.com/members/{id}/"
+        }
+      ],
+      "header": "",
+      "header_pattern": "",
+      "identity": {
+        "selector": "",
+        "attribute": ""
+      },
+      "editor": "",
+      "send": "",
+      "messages": "",
+      "message_text": "",
+      "sent": "",
+      "reply_context": "",
+      "message_date": {
+        "selector": "",
+        "attribute": "datetime"
+      },
+      "history_end": "",
+      "history_more": [],
+      "history_return": [],
+      "compose_open": [],
+      "max_history_pages": 100
+    },
+    "members": {
+      "open": [
+        {
+          "action": "goto",
+          "value": "https://www.meetup.com/geneve-football-friendly/members/"
+        }
+      ],
+      "ready": "",
+      "rows": "",
+      "id": {
+        "selector": "",
+        "attribute": ""
+      },
+      "joined": {
+        "selector": "",
+        "attribute": "",
+        "pattern": "Joined\\s+(.+)",
+        "format": "%b %d, %Y",
+        "date_only": true
+      },
+      "left": "",
+      "end": "",
+      "advance": [],
+      "max_pages": 100
+    }
+  }
+}
