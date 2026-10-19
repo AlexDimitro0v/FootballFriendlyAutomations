@@ -1,0 +1,21 @@
+{
+  "photo": "session-photo.png",
+  "receipt_journals": ["sent-events.json", "imported-receipts.json"],
+  "whatsapp_group_name": "Genève Football Friendly",
+  "verified_invite": "",
+  "ui_verified": false,
+  "selectors": {
+    "group_header": "#main header",
+    "main_composer": "#main footer [contenteditable='true'][role='textbox']",
+    "reply_context": "#main [data-testid='quoted-message']",
+    "outgoing_messages": "#main .message-out",
+    "photo_in_message": "button[aria-label='Open picture']",
+    "sent_in_message": "[data-icon='msg-check'], [data-icon='msg-dblcheck']",
+    "attach_button": "",
+    "photos_button": "",
+    "preview_photo": "",
+    "caption_editor": "",
+    "preview_destination": "",
+    "send_photo_button": ""
+  }
+}
