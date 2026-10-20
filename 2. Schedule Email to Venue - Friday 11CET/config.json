@@ -1,0 +1,27 @@
+{
+  "group_url": "https://www.meetup.com/geneve-football-friendly/",
+  "venue": "Campus des Nation",
+  "whatsapp_group": "Genève Football Friendly",
+  "whatsapp_invite": "https://chat.whatsapp.com/GvSCWqkkIwWG2hIHEyLyNX",
+  "gmail_account": "dimitrovalexandar.me@gmail.com",
+  "venue_email": "leo.barbat@ecolint.ch",
+  "gmail_subject": "Football Pitch Bookings",
+  "skip_dates": [],
+  "latest_start": "11:00",
+  "selectors": {
+    "wa_chat": "#main",
+    "wa_message": "#main [data-id]",
+    "wa_media_image": "img[src^='blob:']",
+    "wa_search": "[contenteditable=true][data-tab='3']",
+    "wa_composer": "#main footer [contenteditable=true][role=textbox]",
+    "wa_quote_preview": "#main footer [data-testid=quoted-message]",
+    "wa_sent": "[data-icon=msg-check], [data-icon=msg-dblcheck]",
+    "wa_attach": "button[title='Attach'], button[aria-label='Attach']",
+    "wa_photo_input": "input[type=file][accept*='image']",
+    "wa_caption": "[contenteditable=true][aria-label='Add a caption']",
+    "wa_media_send": "[role=dialog] [aria-label='Send']",
+    "meetup_comment_submit": "button[aria-label='Post comment']",
+    "meetup_comment_row": "[data-testid='event-comment']",
+    "meetup_private_badge": "text=Private"
+  }
+}

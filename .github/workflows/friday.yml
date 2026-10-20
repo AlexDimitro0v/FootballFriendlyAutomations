@@ -1,0 +1,63 @@
+name: Friday session decision
+on:
+  schedule:
+    - cron: '50 10 * * 5'
+      timezone: Europe/Zurich
+  workflow_dispatch:
+    inputs:
+      live:
+        description: Perform real actions (false runs a read-only preflight)
+        type: boolean
+        default: false
+      allow_late:
+        description: Allow a Friday run after 11:00 Geneva; review venue deadline first
+        type: boolean
+        default: false
+      event_date:
+        description: Following Saturday date, YYYY-MM-DD (optional)
+        type: string
+        default: ''
+permissions:
+  contents: read
+concurrency:
+  group: football-friday-production
+  cancel-in-progress: false
+jobs:
+  decide:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: football-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m unittest discover -s tests -v
+      - run: python -m playwright install --with-deps chromium
+      - name: Decide and execute
+        env:
+          LIVE_ENABLED: ${{ vars.LIVE_ENABLED }}
+          UI_VALIDATED: ${{ vars.UI_VALIDATED }}
+          SESSION_KEY: ${{ secrets.SESSION_KEY }}
+          STATE_TOKEN: ${{ secrets.STATE_TOKEN }}
+          STATE_REPOSITORY: ${{ vars.STATE_REPOSITORY }}
+          WHATSAPP_GROUP_JID: ${{ secrets.WHATSAPP_GROUP_JID }}
+          GMAIL_CLIENT_ID: ${{ secrets.GMAIL_CLIENT_ID }}
+          GMAIL_CLIENT_SECRET: ${{ secrets.GMAIL_CLIENT_SECRET }}
+          GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
+          GMAIL_THREAD_ID: ${{ secrets.GMAIL_THREAD_ID }}
+          EVENT_NAME: ${{ github.event_name }}
+          MANUAL_LIVE: ${{ inputs.live }}
+          ALLOW_LATE: ${{ inputs.allow_late }}
+          EVENT_DATE: ${{ inputs.event_date }}
+        shell: bash
+        run: |
+          args=()
+          if [[ "$EVENT_NAME" == schedule && "$LIVE_ENABLED" == true ]] || [[ "$MANUAL_LIVE" == true ]]; then
+            args+=(--live)
+          fi
+          if [[ "$EVENT_NAME" == workflow_dispatch && "$ALLOW_LATE" == true ]]; then args+=(--allow-late); fi
+          if [[ -n "$EVENT_DATE" ]]; then args+=(--event-date "$EVENT_DATE"); fi
+          python run.py "${args[@]}"
