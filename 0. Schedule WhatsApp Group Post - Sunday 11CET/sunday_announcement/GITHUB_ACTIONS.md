@@ -46,7 +46,7 @@ umask 077
 mkdir -p "$SUNDAY_STATE_DIR"
 chmod 700 "$SUNDAY_STATE_DIR"
 python3 -m venv "$SUNDAY_STATE_DIR/venv"
-"$SUNDAY_STATE_DIR/venv/bin/pip" install -r sunday_announcement/requirements.txt
+"$SUNDAY_STATE_DIR/venv/bin/pip" install -r ../../requirements.txt
 "$SUNDAY_STATE_DIR/venv/bin/python" -m playwright install --with-deps chromium
 
 # Initial setup only: do not overwrite your verified configuration on upgrades.

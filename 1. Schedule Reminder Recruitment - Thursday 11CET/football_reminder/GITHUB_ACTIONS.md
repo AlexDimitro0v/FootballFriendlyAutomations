@@ -33,7 +33,7 @@ export FOOTBALL_STATE_DIR=/home/runner/football-thursday-state
 umask 077
 mkdir -p "$FOOTBALL_STATE_DIR"
 python3 -m venv "$FOOTBALL_STATE_DIR/venv"
-"$FOOTBALL_STATE_DIR/venv/bin/python" -m pip install -r football_reminder/requirements.txt
+"$FOOTBALL_STATE_DIR/venv/bin/python" -m pip install -r ../../requirements.txt
 "$FOOTBALL_STATE_DIR/venv/bin/python" -m playwright install --with-deps chromium
 cp football_reminder/config.json "$FOOTBALL_STATE_DIR/config.json"
 ```

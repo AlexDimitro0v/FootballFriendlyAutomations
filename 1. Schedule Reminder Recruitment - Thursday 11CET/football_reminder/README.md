@@ -78,7 +78,6 @@ football_reminder/
   reminder.py            # schedule, checkpoints, receipts, queue, orchestration
   browser.py             # event verification and configurable live UI adapter
   config.json            # safe template; sending disabled
-  requirements.txt
   test_reminder.py
   README.md
   GITHUB_ACTIONS.md       # cloud deployment
@@ -91,7 +90,7 @@ football_reminder/
 Python 3.12 recommended. From the repository root:
 
 ```bash
-python -m pip install -r football_reminder/requirements.txt
+python -m pip install -r requirements.txt
 python -m unittest discover -s football_reminder -p 'test_*.py' -v
 ```
 
