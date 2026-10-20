@@ -1,0 +1,95 @@
+name: Football Thursday reminder
+
+on:
+  schedule:
+    - cron: '0 11 * * 4'
+      timezone: Europe/Zurich
+  workflow_dispatch:
+    inputs:
+      send:
+        description: 'Send messages (false = read-only browser preview)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: football-thursday-reminder
+  cancel-in-progress: false
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install tzdata
+      - run: python -m unittest discover -s football_reminder -p 'test_*.py' -v
+
+  reminder:
+    needs: tests
+    if: >-
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
+      (github.event_name == 'workflow_dispatch' || vars.THURSDAY_AUTOMATION_ENABLED == 'true')
+    runs-on: [self-hosted, linux, x64, football-thursday]
+    timeout-minutes: 45
+    env:
+      FOOTBALL_STATE_DIR: ${{ vars.FOOTBALL_STATE_DIR }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Get original workflow creation time
+        id: origin
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {data} = await github.rest.actions.getWorkflowRun({
+              owner: context.repo.owner, repo: context.repo.repo, run_id: context.runId
+            });
+            core.setOutput('created_at', data.created_at);
+      - name: Validate persistent runner configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$FOOTBALL_STATE_DIR" || { echo 'Set FOOTBALL_STATE_DIR.'; exit 1; }
+          [[ "$FOOTBALL_STATE_DIR" = /* ]] || { echo 'State directory must be absolute.'; exit 1; }
+          test -x "$FOOTBALL_STATE_DIR/venv/bin/python"
+          test -f "$FOOTBALL_STATE_DIR/config.json"
+      - name: Run reminder
+        env:
+          FOOTBALL_RUN_CREATED_AT: ${{ steps.origin.outputs.created_at }}
+          EVENT_NAME: ${{ github.event_name }}
+          MANUAL_SEND: ${{ inputs.send }}
+          SENDING_ENABLED: ${{ vars.THURSDAY_AUTOMATION_ENABLED }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          args=(run --headless)
+          if [[ "$EVENT_NAME" == 'schedule' || "$MANUAL_SEND" == 'true' ]]; then
+            [[ "$SENDING_ENABLED" == 'true' ]] || { echo 'Sending is disabled.'; exit 1; }
+            args+=(--send)
+          fi
+          # State and browser sessions live on an always-on CLOUD VM, not the laptop.
+          # Script holds an OS lock; browser errors and member IDs stay on the VM.
+          if "$FOOTBALL_STATE_DIR/venv/bin/python" football_reminder/reminder.py "${args[@]}" > "$FOOTBALL_STATE_DIR/last-run.log" 2>&1; then
+            echo 'Run finished. See counts above and the private runner report.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Blocked or partially complete. Inspect last-report.json and run.log on the cloud runner. Do not blindly resend.' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+  disabled:
+    needs: tests
+    if: github.event_name == 'schedule' && vars.THURSDAY_AUTOMATION_ENABLED != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'Thursday sending disabled until cloud setup and live verification are complete.' >> "$GITHUB_STEP_SUMMARY"
