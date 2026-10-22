@@ -10,7 +10,7 @@ import html
 import json
 import logging
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import re
 import sqlite3
 import time
@@ -29,7 +29,6 @@ class Blocked(RuntimeError):
 
 
 def local_now():
-    print(datetime.now(GENEVA))
     return datetime.now(GENEVA)
 
 
@@ -49,6 +48,72 @@ def posting_sunday(now, *, sending=False):
 def require_window(sunday, now=None):
     if posting_sunday(now or local_now(), sending=True) != sunday:
         raise Blocked("The scheduled Sunday's posting window has ended")
+
+
+def workflow_sunday(created_at, now=None):
+    """Bind an Actions attempt to its original Sunday, including workflow re-runs."""
+    origin = timestamp(created_at)
+    current = localize(now or local_now())
+    sunday = posting_sunday(origin, sending=True)
+    if origin > current:
+        raise Blocked("Workflow creation time is in the future")
+    require_window(sunday, current)
+    return sunday
+
+
+def state_directory():
+    """Actions must reuse pre-provisioned state outside its disposable checkout."""
+    configured = os.environ.get("SUNDAY_STATE_DIR", "").strip()
+    cloud = os.environ.get("GITHUB_ACTIONS") == "true"
+    if cloud and not configured:
+        raise Blocked("Set SUNDAY_STATE_DIR to the persistent cloud state directory")
+    path = Path(configured).expanduser() if configured else ROOT / "state"
+    if not path.is_absolute():
+        raise Blocked("SUNDAY_STATE_DIR must be absolute")
+    path = path.resolve()
+    if cloud:
+        workspace = os.environ.get("GITHUB_WORKSPACE", "").strip()
+        if not workspace or not Path(workspace).is_absolute():
+            raise Blocked("GITHUB_WORKSPACE must identify the checkout")
+        if path.is_relative_to(Path(workspace).resolve()):
+            raise Blocked("Persistent state must be outside the GitHub checkout")
+        if not path.is_dir():
+            raise Blocked("Provision the persistent cloud state directory first")
+    else:
+        path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def configured_paths(config_path):
+    """Resolve assets and receipt journals beside the selected configuration."""
+    config_path = Path(config_path).expanduser().resolve()
+    cfg = json.loads(config_path.read_text(encoding="utf-8-sig"))
+
+    def resolve(value):
+        if not isinstance(value, str) or not value.strip():
+            raise Blocked("Photo and receipt paths must be nonempty strings")
+        if os.name != "nt" and (PureWindowsPath(value).drive or "\\" in value):
+            raise Blocked("Windows paths cannot be used on Linux; use config.cloud.json")
+        return str((config_path.parent / Path(value).expanduser()).resolve())
+
+    journals = cfg.get("receipt_journals")
+    if not isinstance(journals, list) or not journals:
+        raise Blocked("Configure at least one receipt journal")
+    cfg["photo"] = resolve(cfg.get("photo"))
+    cfg["receipt_journals"] = [resolve(path) for path in journals]
+    return cfg
+
+
+def assert_cloud_ready(state):
+    """Do not silently replace lost cloud login or duplicate-prevention state."""
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        return
+    state = Path(state)
+    if not (state / "browser-profile").is_dir():
+        raise Blocked("Link the persistent cloud browser profile before sending")
+    for name in ("receipts.sqlite3", "sent-events.json"):
+        if not (state / name).is_file():
+            raise Blocked(f"Cloud receipt state missing: {name}; restore it before sending")
 
 
 def event_url(url):
@@ -204,7 +269,7 @@ def import_receipts(journal, paths):
                 continue
             event = Event(url, date.fromisoformat(row["event_date"]))
             outcome = row.get("outcome", row.get("status"))
-            confirmed = outcome in {"sent", "delivered", "existing_sent_verified_duplicate_skipped", "duplicate_link_observed"}
+            confirmed = outcome in {"sent", "sent_verified", "delivered", "existing_sent_verified_duplicate_skipped", "duplicate_link_observed"}
             journal.record(event, "existing" if confirmed else "uncertain", f"Imported {path}: {outcome}")
 
 
@@ -346,7 +411,11 @@ def send_once(page, event_page, cfg, event, sunday, photo, journal, state):
 
 
 def run(context, cfg, journal, state, send):
-    sunday = posting_sunday(local_now(), sending=send)
+    if send and os.environ.get("GITHUB_ACTIONS") == "true":
+        assert_cloud_ready(state)
+        sunday = workflow_sunday(os.environ.get("SUNDAY_RUN_CREATED_AT", ""))
+    else:
+        sunday = posting_sunday(local_now(), sending=send)
     meetup = context.new_page()
     wa = None
     try:
@@ -395,14 +464,24 @@ def main():
     parser.add_argument("--send", action="store_true", help="Enable real sending within Sunday window")
     parser.add_argument("--inspect", action="store_true", help="Open Playwright Inspector during login")
     parser.add_argument("--headless", action="store_true")
+    parser.add_argument("--config", type=Path, help="Config file; asset paths are relative to it")
     args = parser.parse_args()
-    state = ROOT / "state"
-    state.mkdir(exist_ok=True)
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s",
-                        handlers=[logging.StreamHandler(), logging.FileHandler(state / "run.log", encoding="utf-8")])
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     try:
-        cfg = json.loads((ROOT / "config.json").read_text(encoding="utf-8-sig"))
+        if os.environ.get("GITHUB_ACTIONS") == "true" and args.command != "run":
+            raise Blocked("GitHub Actions supports one-shot run only; link the browser on the VM desktop")
+        state = state_directory()
+        file_log = logging.FileHandler(state / "run.log", encoding="utf-8")
+        file_log.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+        LOG.addHandler(file_log)
+        config_path = args.config or ((state if os.environ.get("SUNDAY_STATE_DIR") else ROOT) / "config.json")
+        cfg = configured_paths(config_path)
         with instance_lock(state / "instance.lock"):
+            # Check BEFORE Journal/Chromium can create empty replacement state.
+            if args.send:
+                assert_cloud_ready(state)
+                if os.environ.get("GITHUB_ACTIONS") == "true":
+                    workflow_sunday(os.environ.get("SUNDAY_RUN_CREATED_AT", ""))
             journal = Journal(state / "receipts.sqlite3")
             try:
                 import_receipts(journal, [(ROOT / p).resolve() for p in cfg["receipt_journals"]])
