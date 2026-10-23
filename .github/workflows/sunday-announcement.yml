@@ -94,3 +94,8 @@ jobs:
           fi
 
   disabled:
+    needs: tests
+    if: github.event_name == 'schedule' && vars.SUNDAY_AUTOMATION_ENABLED != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'Scheduled sending is disabled. Complete cloud setup, then set SUNDAY_AUTOMATION_ENABLED=true.' >> "$GITHUB_STEP_SUMMARY"
