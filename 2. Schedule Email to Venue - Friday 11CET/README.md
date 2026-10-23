@@ -61,12 +61,11 @@ systems acting on the same event. Historical Codex receipts are not automaticall
 
 ## 2. Install locally and capture sessions
 
-Python 3.12 recommended:
-
+Python 3.12 recommended. From the repository root:
 ```sh
 python -m venv .venv
 # Activate .venv using your shell's activation command.
-pip install -r ../../requirements.txt
+pip install -r requirements.txt
 python -m playwright install chromium
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
